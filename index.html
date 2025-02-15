@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shooter Game 3D</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background: #333;
+            color: white;
+            font-family: Arial, sans-serif;
+            text-align: center;
+        }
+        #welcomeScreen {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+        }
+        #startButton {
+            padding: 10px 20px;
+            font-size: 20px;
+            cursor: pointer;
+            background: #28a745;
+            color: white;
+            border: none;
+            margin-top: 20px;
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body>
+    <div id="welcomeScreen">
+        <h1>Welcome to My Game</h1>
+        <button id="startButton">Start Game</button>
+    </div>
+    <script>
+        document.getElementById("startButton").addEventListener("click", () => {
+            document.getElementById("welcomeScreen").style.display = "none";
+            startGame();
+        });
+
+        function startGame() {
+            const scene = new THREE.Scene();
+            const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            const renderer = new THREE.WebGLRenderer();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            document.body.appendChild(renderer.domElement);
+
+            // Suelo
+            const floor = new THREE.Mesh(new THREE.PlaneGeometry(20, 20), new THREE.MeshBasicMaterial({ color: 0x555555, side: THREE.DoubleSide }));
+            floor.rotation.x = -Math.PI / 2;
+            scene.add(floor);
+
+            function createCharacter(color) {
+                const character = new THREE.Group();
+                const head = new THREE.Mesh(new THREE.SphereGeometry(0.5, 16, 16), new THREE.MeshBasicMaterial({ color }));
+                head.position.y = 2.5;
+                character.add(head);
+                const body = new THREE.Mesh(new THREE.BoxGeometry(1, 1.5, 0.5), new THREE.MeshBasicMaterial({ color }));
+                character.add(body);
+                return character;
+            }
+
+            const player = createCharacter(0x0000ff);
+            player.position.y = 1;
+            scene.add(player);
+
+            const enemies = [];
+            function spawnEnemy() {
+                const enemy = createCharacter(0xff0000);
+                enemy.position.set(Math.random() * 10 - 5, 1, -10);
+                scene.add(enemy);
+                enemies.push(enemy);
+            }
+            setInterval(spawnEnemy, 3000);
+
+            const bullets = [];
+            function shoot() {
+                const bullet = new THREE.Mesh(new THREE.SphereGeometry(0.2, 8, 8), new THREE.MeshBasicMaterial({ color: 0xffff00 }));
+                bullet.position.set(player.position.x, player.position.y + 1, player.position.z - 1);
+                scene.add(bullet);
+                bullets.push(bullet);
+            }
+            document.addEventListener("keydown", (event) => {
+                if (event.code === "KeyF") {
+                    shoot();
+                }
+            });
+
+            const playerSpeed = 0.2;
+            let moveLeft = false, moveRight = false, moveForward = false, moveBackward = false;
+            document.addEventListener("keydown", (event) => {
+                if (event.code === "ArrowLeft") moveLeft = true;
+                if (event.code === "ArrowRight") moveRight = true;
+                if (event.code === "ArrowUp") moveForward = true;
+                if (event.code === "ArrowDown") moveBackward = true;
+            });
+            document.addEventListener("keyup", (event) => {
+                if (event.code === "ArrowLeft") moveLeft = false;
+                if (event.code === "ArrowRight") moveRight = false;
+                if (event.code === "ArrowUp") moveForward = false;
+                if (event.code === "ArrowDown") moveBackward = false;
+            });
+
+            camera.position.set(0, 5, 10);
+            camera.lookAt(player.position);
+
+            function animate() {
+                requestAnimationFrame(animate);
+                if (moveLeft) player.position.x -= playerSpeed;
+                if (moveRight) player.position.x += playerSpeed;
+                if (moveForward) player.position.z -= playerSpeed;
+                if (moveBackward) player.position.z += playerSpeed;
+                enemies.forEach((enemy) => {
+                    enemy.position.z += 0.02;
+                });
+                bullets.forEach((bullet, index) => {
+                    bullet.position.z -= 0.3;
+                    if (bullet.position.z < -20) {
+                        scene.remove(bullet);
+                        bullets.splice(index, 1);
+                    }
+                });
+                renderer.render(scene, camera);
+            }
+            animate();
+        }
+    </script>
+</body>
+</html>
